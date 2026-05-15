@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>云缈 — AI工具导航</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    background: #050810;
+    color: #e2e8f8;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== Canvas Background ===== */
+  #canvas-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===== Glow Orbs ===== */
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .glow-orb-1 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
+    top: -100px; left: -100px;
+    animation-delay: 0s;
+  }
+  .glow-orb-2 {
+    width: 350px; height: 350px;
+    background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%);
+    top: 40%; right: -80px;
+    animation-delay: -3s;
+  }
+  .glow-orb-3 {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
+    bottom: -80px; left: 30%;
+    animation-delay: -5s;
+  }
+  @keyframes orbFloat {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50% { transform: translateY(-30px) scale(1.05); }
+  }
+
+  /* ===== Grid Lines ===== */
+  .grid-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===== Main Content ===== */
+  .content-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 16px 40px;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 36px 0 20px;
+    text-align: center;
+  }
+  .logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .logo-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 20px rgba(99,102,241,0.5);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.5); }
+    50% { box-shadow: 0 0 35px rgba(168,85,247,0.7), 0 0 60px rgba(99,102,241,0.3); }
+  }
+  .logo-text {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a5b4fc, #c084fc, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+  .header-subtitle {
+    font-size: 13px;
+    color: rgba(165,180,252,0.6);
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* ===== Search Bar ===== */
+  .search-wrap {
+    margin: 20px 0 28px;
+    position: relative;
+  }
+  .search-input {
+    width: 100%;
+    padding: 13px 46px 13px 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 50px;
+    color: #e2e8f8;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+  }
+  .search-input::placeholder { color: rgba(165,180,252,0.4); }
+  .search-input:focus {
+    border-color: rgba(99,102,241,0.7);
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 0 20px rgba(99,102,241,0.2);
+  }
+  .search-icon {
+    position: absolute;
+    right: 16px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: rgba(165,180,252,0.5);
+    pointer-events: none;
+  }
+
+  /* ===== Category Tabs ===== */
+  .tabs-wrap {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 20px;
+    scrollbar-width: none;
+  }
+  .tabs-wrap::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid rgba(99,102,241,0.25);
+    background: rgba(255,255,255,0.04);
+    color: rgba(165,180,252,0.7);
+    transition: all 0.25s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    border-color: rgba(99,102,241,0.5);
+    color: #a5b4fc;
+  }
+  .tab-btn.active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(168,85,247,0.25));
+    border-color: rgba(99,102,241,0.6);
+    color: #c4b5fd;
+    box-shadow: 0 0 12px rgba(99,102,241,0.25);
+  }
+
+  /* ===== Section Title ===== */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(165,180,252,0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    padding-left: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    display: inline-block;
+    width: 3px; height: 14px;
+    background: linear-gradient(to bottom, #6366f1, #a855f7);
+    border-radius: 2px;
+  }
+
+  /* ===== Tool Cards Grid ===== */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .cards-grid.single { grid-template-columns: 1fr; }
+
+  /* ===== Tool Card ===== */
+  .tool-card {
+    position: relative;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(99,102,241,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    text-decoration: none;
+    display: block;
+  }
+  .tool-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.04));
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: inherit;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(99,102,241,0.4);
+    box-shadow: 0 8px 30px rgba(99,102,241,0.2), 0 0 0 1px rgba(99,102,241,0.1);
+  }
+  .tool-card:hover::before { opacity: 1; }
+  .tool-card:active { transform: translateY(-1px) scale(0.98); }
+
+  /* Card shine effect */
+  .tool-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transform: skewX(-15deg);
+    transition: left 0.5s;
+  }
+  .tool-card:hover::after { left: 150%; }
+
+  .card-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f8;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+  }
+  .card-desc {
+    font-size: 12px;
+    color: rgba(165,180,252,0.5);
+    line-height: 1.5;
+    position: relative; z-index: 1;
+  }
+  .card-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    position: relative; z-index: 1;
+  }
+  .tag-hot {
+    background: rgba(239,68,68,0.15);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+  .tag-new {
+    background: rgba(34,197,94,0.12);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+  .tag-free {
+    background: rgba(99,102,241,0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99,102,241,0.3);
+  }
+
+  /* ===== Featured Card (wide) ===== */
+  .tool-card.featured {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+  }
+  .tool-card.featured .card-icon-wrap {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    font-size: 28px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .tool-card.featured .card-content { flex: 1; }
+  .tool-card.featured .card-name { font-size: 17px; }
+  .tool-card.featured .card-desc { font-size: 13px; }
+  .featured-arrow {
+    font-size: 18px;
+    color: rgba(165,180,252,0.4);
+    flex-shrink: 0;
+  }
+
+  /* ===== Banner Card ===== */
+  .banner-card {
+    grid-column: 1 / -1;
+    padding: 22px 20px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.15) 100%);
+    border: 1px solid rgba(99,102,241,0.3);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .banner-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -20%;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.3) 0%, transparent 70%);
+  }
+  .banner-title {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #c4b5fd, #f0abfc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .banner-sub {
+    font-size: 13px;
+    color: rgba(196,181,253,0.7);
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .banner-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 20px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    transition: all 0.3s;
+  }
+  .banner-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(99,102,241,0.6);
+  }
+
+  /* ===== Stats Row ===== */
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 14px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(99,102,241,0.15);
+    border-radius: 14px;
+  }
+  .stat-num {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a5b4fc, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(165,180,252,0.5);
+  }
+
+  /* ===== Divider ===== */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent);
+    margin: 8px 0 24px;
+  }
+
+  /* ===== Bottom Nav ===== */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    padding: 10px 0 env(safe-area-inset-bottom, 0);
+    background: rgba(5,8,16,0.85);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(99,102,241,0.15);
+    z-index: 100;
+  }
+  .nav-items {
+    display: flex;
+    justify-content: space-around;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .nav-icon { font-size: 20px; line-height: 1; }
+  .nav-label { font-size: 10px; color: rgba(165,180,252,0.5); transition: all 0.25s; }
+  .nav-item.active .nav-label { color: #a5b4fc; }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 6px rgba(99,102,241,0.8)); }
+
+  /* Bottom padding for fixed nav */
+  .bottom-spacer { height: 70px; }
+
+  /* ===== Scroll-in Animation ===== */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .fade-up.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ===== Color Themes for cards ===== */
+  .theme-indigo .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.1));
+    box-shadow: 0 4px 15px rgba(99,102,241,0.2);
+  }
+  .theme-purple .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(168,85,247,0.1));
+    box-shadow: 0 4px 15px rgba(168,85,247,0.2);
+  }
+  .theme-blue .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(59,130,246,0.1));
+    box-shadow: 0 4px 15px rgba(59,130,246,0.2);
+  }
+  .theme-pink .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(236,72,153,0.25), rgba(236,72,153,0.1));
+    box-shadow: 0 4px 15px rgba(236,72,153,0.2);
+  }
+  .theme-teal .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(20,184,166,0.25), rgba(20,184,166,0.1));
+    box-shadow: 0 4px 15px rgba(20,184,166,0.2);
+  }
+  .theme-amber .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(245,158,11,0.1));
+    box-shadow: 0 4px 15px rgba(245,158,11,0.2);
+  }
+  .theme-rose .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(244,63,94,0.25), rgba(244,63,94,0.1));
+    box-shadow: 0 4px 15px rgba(244,63,94,0.2);
+  }
+  .theme-cyan .card-icon-wrap {
+    background: linear-gradient(135deg, rgba(6,182,212,0.25), rgba(6,182,212,0.1));
+    box-shadow: 0 4px 15px rgba(6,182,212,0.2);
+  }
+</style>
+</head>
+<body>
+
+<!-- Background Elements -->
+<canvas id="canvas-bg"></canvas>
+<div class="grid-overlay"></div>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+<div class="glow-orb glow-orb-3"></div>
+
+<!-- Main Content -->
+<div class="content-wrapper">
+
+  <!-- Header -->
+  <header class="header fade-up">
+    <div class="logo-wrap">
+      <div class="logo-icon">✦</div>
+      <span class="logo-text">云缈</span>
+    </div>
+    <p class="header-subtitle">AI 工具导航 · 探索智能边界</p>
+  </header>
+
+  <!-- Search -->
+  <div class="search-wrap fade-up">
+    <input class="search-input" type="text" placeholder="搜索 AI 工具…" id="searchInput">
+    <span class="search-icon">🔍</span>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="tabs-wrap fade-up" id="tabsWrap">
+    <button class="tab-btn active" data-cat="all">全部</button>
+    <button class="tab-btn" data-cat="write">写作创作</button>
+    <button class="tab-btn" data-cat="image">图像生成</button>
+    <button class="tab-btn" data-cat="video">视频制作</button>
+    <button class="tab-btn" data-cat="code">编程开发</button>
+    <button class="tab-btn" data-cat="chat">智能对话</button>
+    <button class="tab-btn" data-cat="audio">音频语音</button>
+  </div>
+
+  <!-- Banner -->
+  <div class="banner-card fade-up">
+    <div class="banner-title">✦ 云缈 AI 导航</div>
+    <div class="banner-sub">精选全球顶尖 AI 工具，让创意无边界</div>
+    <button class="banner-btn" onclick="scrollToTools()">🚀 开始探索</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row fade-up">
+    <div class="stat-item">
+      <span class="stat-num" id="countTools">68</span>
+      <span class="stat-label">精选工具</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">7</span>
+      <span class="stat-label">分类</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">每日</span>
+      <span class="stat-label">持续更新</span>
+    </div>
+  </div>
+
+  <!-- ===== 写作创作 ===== -->
+  <div class="section-block" data-cat="write" id="toolsStart">
+    <div class="section-title fade-up">写作创作</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-indigo fade-up" href="https://chatgpt.com" target="_blank">
+        <div class="card-icon-wrap">🤖</div>
+        <div class="card-content">
+          <div class="card-name">ChatGPT</div>
+          <div class="card-desc">OpenAI 旗舰对话AI，写作、分析、编程全能助手</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-purple fade-up" href="https://claude.ai" target="_blank">
+        <div class="card-icon-wrap">💬</div>
+        <div class="card-name">Claude</div>
+        <div class="card-desc">Anthropic出品，长文处理极强</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-blue fade-up" href="https://www.notion.so/product/ai" target="_blank">
+        <div class="card-icon-wrap">📝</div>
+        <div class="card-name">Notion AI</div>
+        <div class="card-desc">笔记+AI写作，知识管理神器</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+      <a class="tool-card theme-teal fade-up" href="https://rytr.me" target="_blank">
+        <div class="card-icon-wrap">✍️</div>
+        <div class="card-name">Rytr</div>
+        <div class="card-desc">多语言AI写作助手，40+内容模板</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+      <a class="tool-card theme-amber fade-up" href="https://www.jasper.ai" target="_blank">
+        <div class="card-icon-wrap">📣</div>
+        <div class="card-name">Jasper</div>
+        <div class="card-desc">营销文案首选，品牌调性一致</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== 图像生成 ===== -->
+  <div class="section-block" data-cat="image">
+    <div class="section-title fade-up">图像生成</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-pink fade-up" href="https://www.midjourney.com" target="_blank">
+        <div class="card-icon-wrap">🎨</div>
+        <div class="card-content">
+          <div class="card-name">Midjourney</div>
+          <div class="card-desc">顶级AI绘画工具，艺术质感无与伦比</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-indigo fade-up" href="https://openai.com/dall-e-3" target="_blank">
+        <div class="card-icon-wrap">🖼️</div>
+        <div class="card-name">DALL·E 3</div>
+        <div class="card-desc">OpenAI文生图，理解提示词精准</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-purple fade-up" href="https://stability.ai" target="_blank">
+        <div class="card-icon-wrap">🌌</div>
+        <div class="card-name">Stable Diffusion</div>
+        <div class="card-desc">开源AI绘画，可本地部署</div>
+        <span class="card-tag tag-free">开源免费</span>
+      </a>
+
+      <a class="tool-card theme-rose fade-up" href="https://www.adobe.com/products/firefly.html" target="_blank">
+        <div class="card-icon-wrap">🔥</div>
+        <div class="card-name">Adobe Firefly</div>
+        <div class="card-desc">商业安全的AI图像创作平台</div>
+        <span class="card-tag tag-new">✨ 新品</span>
+      </a>
+
+      <a class="tool-card theme-cyan fade-up" href="https://ideogram.ai" target="_blank">
+        <div class="card-icon-wrap">💎</div>
+        <div class="card-name">Ideogram</div>
+        <div class="card-desc">文字渲染效果极佳的绘图AI</div>
+        <span class="card-tag tag-new">✨ 新品</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== 视频制作 ===== -->
+  <div class="section-block" data-cat="video">
+    <div class="section-title fade-up">视频制作</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-rose fade-up" href="https://sora.com" target="_blank">
+        <div class="card-icon-wrap">🎬</div>
+        <div class="card-content">
+          <div class="card-name">Sora</div>
+          <div class="card-desc">OpenAI文生视频，突破性视频生成技术</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-purple fade-up" href="https://runwayml.com" target="_blank">
+        <div class="card-icon-wrap">🎥</div>
+        <div class="card-name">Runway</div>
+        <div class="card-desc">专业AI视频编辑与生成平台</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-amber fade-up" href="https://pika.art" target="_blank">
+        <div class="card-icon-wrap">⚡</div>
+        <div class="card-name">Pika</div>
+        <div class="card-desc">图片动态化，秒变短视频</div>
+        <span class="card-tag tag-new">✨ 新品</span>
+      </a>
+
+      <a class="tool-card theme-teal fade-up" href="https://www.synthesia.io" target="_blank">
+        <div class="card-icon-wrap">🧑‍💼</div>
+        <div class="card-name">Synthesia</div>
+        <div class="card-desc">AI数字人视频，企业培训神器</div>
+        <span class="card-tag tag-free">免费试用</span>
+      </a>
+
+      <a class="tool-card theme-blue fade-up" href="https://www.heygen.com" target="_blank">
+        <div class="card-icon-wrap">🎭</div>
+        <div class="card-name">HeyGen</div>
+        <div class="card-desc">AI换脸视频翻译，多语言同步</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== 编程开发 ===== -->
+  <div class="section-block" data-cat="code">
+    <div class="section-title fade-up">编程开发</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-blue fade-up" href="https://github.com/features/copilot" target="_blank">
+        <div class="card-icon-wrap">💻</div>
+        <div class="card-content">
+          <div class="card-name">GitHub Copilot</div>
+          <div class="card-desc">代码自动补全神器，开发效率翻倍</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-indigo fade-up" href="https://cursor.sh" target="_blank">
+        <div class="card-icon-wrap">🖱️</div>
+        <div class="card-name">Cursor</div>
+        <div class="card-desc">AI原生IDE，自然语言写代码</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-teal fade-up" href="https://codeium.com" target="_blank">
+        <div class="card-icon-wrap">🆓</div>
+        <div class="card-name">Codeium</div>
+        <div class="card-desc">免费AI代码补全，70+语言支持</div>
+        <span class="card-tag tag-free">完全免费</span>
+      </a>
+
+      <a class="tool-card theme-amber fade-up" href="https://www.tabnine.com" target="_blank">
+        <div class="card-icon-wrap">🔧</div>
+        <div class="card-name">Tabnine</div>
+        <div class="card-desc">本地部署AI代码助手，保护隐私</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+      <a class="tool-card theme-cyan fade-up" href="https://replit.com" target="_blank">
+        <div class="card-icon-wrap">🌐</div>
+        <div class="card-name">Replit AI</div>
+        <div class="card-desc">在线云端IDE+AI，随时随地编程</div>
+        <span class="card-tag tag-new">✨ 升级</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== 智能对话 ===== -->
+  <div class="section-block" data-cat="chat">
+    <div class="section-title fade-up">智能对话</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-indigo fade-up" href="https://gemini.google.com" target="_blank">
+        <div class="card-icon-wrap">✨</div>
+        <div class="card-content">
+          <div class="card-name">Google Gemini</div>
+          <div class="card-desc">谷歌多模态AI，联网搜索+图像理解</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-blue fade-up" href="https://copilot.microsoft.com" target="_blank">
+        <div class="card-icon-wrap">🪟</div>
+        <div class="card-name">Microsoft Copilot</div>
+        <div class="card-desc">微软AI助手，深度集成Office</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+      <a class="tool-card theme-rose fade-up" href="https://www.perplexity.ai" target="_blank">
+        <div class="card-icon-wrap">🔍</div>
+        <div class="card-name">Perplexity</div>
+        <div class="card-desc">AI搜索引擎，实时联网问答</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-purple fade-up" href="https://poe.com" target="_blank">
+        <div class="card-icon-wrap">🌟</div>
+        <div class="card-name">Poe</div>
+        <div class="card-desc">多模型聚合平台，一站访问所有AI</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+      <a class="tool-card theme-amber fade-up" href="https://kimi.moonshot.cn" target="_blank">
+        <div class="card-icon-wrap">🌙</div>
+        <div class="card-name">Kimi</div>
+        <div class="card-desc">国产长文AI，支持200万字上下文</div>
+        <span class="card-tag tag-free">国产免费</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ===== 音频语音 ===== -->
+  <div class="section-block" data-cat="audio">
+    <div class="section-title fade-up">音频语音</div>
+    <div class="cards-grid">
+
+      <a class="tool-card featured theme-teal fade-up" href="https://elevenlabs.io" target="_blank">
+        <div class="card-icon-wrap">🎙️</div>
+        <div class="card-content">
+          <div class="card-name">ElevenLabs</div>
+          <div class="card-desc">顶级AI语音克隆，以假乱真的配音效果</div>
+          <span class="card-tag tag-hot">🔥 热门</span>
+        </div>
+        <div class="featured-arrow">›</div>
+      </a>
+
+      <a class="tool-card theme-indigo fade-up" href="https://www.suno.ai" target="_blank">
+        <div class="card-icon-wrap">🎵</div>
+        <div class="card-name">Suno</div>
+        <div class="card-desc">文字生成完整歌曲，人声+伴奏</div>
+        <span class="card-tag tag-hot">🔥 热门</span>
+      </a>
+
+      <a class="tool-card theme-purple fade-up" href="https://udio.com" target="_blank">
+        <div class="card-icon-wrap">🎸</div>
+        <div class="card-name">Udio</div>
+        <div class="card-desc">AI音乐创作，商业级音质输出</div>
+        <span class="card-tag tag-new">✨ 新品</span>
+      </a>
+
+      <a class="tool-card theme-cyan fade-up" href="https://openai.com/research/whisper" target="_blank">
+        <div class="card-icon-wrap">🎤</div>
+        <div class="card-name">Whisper</div>
+        <div class="card-desc">OpenAI语音识别，多语言转录</div>
+        <span class="card-tag tag-free">开源免费</span>
+      </a>
+
+      <a class="tool-card theme-amber fade-up" href="https://www.mubert.com" target="_blank">
+        <div class="card-icon-wrap">🎼</div>
+        <div class="card-name">Mubert</div>
+        <div class="card-desc">AI生成版权安全的背景音乐</div>
+        <span class="card-tag tag-free">免费版</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="nav-items">
+    <div class="nav-item active" onclick="navClick(this, 'all')">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">首页</span>
+    </div>
+    <div class="nav-item" onclick="navClick(this, 'write')">
+      <span class="nav-icon">✍️</span>
+      <span class="nav-label">写作</span>
+    </div>
+    <div class="nav-item" onclick="navClick(this, 'image')">
+      <span class="nav-icon">🎨</span>
+      <span class="nav-label">图像</span>
+    </div>
+    <div class="nav-item" onclick="navClick(this, 'video')">
+      <span class="nav-icon">🎬</span>
+      <span class="nav-label">视频</span>
+    </div>
+    <div class="nav-item" onclick="navClick(this, 'code')">
+      <span class="nav-icon">💻</span>
+      <span class="nav-label">编程</span>
+    </div>
+  </div>
+</nav>
+
+<script>
+// ===== Particle Canvas =====
+(function() {
+  const canvas = document.getElementById('canvas-bg');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let animId;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function createParticle() {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      alpha: Math.random() * 0.5 + 0.1,
+      hue: Math.floor(Math.random() * 60 + 230) // blue-purple range
+    };
+  }
+
+  function init() {
+    resize();
+    particles = Array.from({length: 80}, createParticle);
+  }
+
+  function drawLines() {
+    const maxDist = 100;
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < maxDist) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          const alpha = (1 - dist / maxDist) * 0.08;
+          ctx.strokeStyle = `rgba(165, 180, 252, ${alpha})`;
+          ctx.lineWidth = 0.5;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 75%, ${p.alpha})`;
+      ctx.fill();
+    });
+    drawLines();
+    animId = requestAnimationFrame(animate);
+  }
+
+  window.addEventListener('resize', () => {
+    resize();
+    particles.forEach(p => {
+      if (p.x > canvas.width) p.x = Math.random() * canvas.width;
+      if (p.y > canvas.height) p.y = Math.random() * canvas.height;
+    });
+  });
+
+  init();
+  animate();
+})();
+
+// ===== Scroll Fade Animations =====
+const fadeEls = document.querySelectorAll('.fade-up');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => entry.target.classList.add('visible'), 0);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+fadeEls.forEach(el => observer.observe(el));
+
+// ===== Category Filter =====
+const tabs = document.querySelectorAll('.tab-btn');
+const sections = document.querySelectorAll('.section-block');
+const dividers = document.querySelectorAll('.divider');
+
+function filterCat(cat) {
+  let divIdx = 0;
+  sections.forEach(sec => {
+    const match = cat === 'all' || sec.dataset.cat === cat;
+    sec.style.display = match ? '' : 'none';
+  });
+  // hide/show dividers based on visible sections
+  const visibleSecs = [...sections].filter(s => s.style.display !== 'none');
+  dividers.forEach((d, i) => {
+    d.style.display = (i < visibleSecs.length - 1) ? '' : 'none';
+  });
+}
+
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    filterCat(tab.dataset.cat);
+  });
+});
+
+// ===== Bottom Nav =====
+function navClick(el, cat) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  // sync tab
+  tabs.forEach(t => {
+    t.classList.toggle('active', t.dataset.cat === cat);
+  });
+  filterCat(cat);
+  if (cat !== 'all') {
+    document.getElementById('toolsStart').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ===== Search =====
+const searchInput = document.getElementById('searchInput');
+searchInput.addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  if (!q) {
+    // restore
+    tabs.forEach(t => { if (t.dataset.cat === 'all') t.click(); });
+    return;
+  }
+  sections.forEach(sec => sec.style.display = '');
+  dividers.forEach(d => d.style.display = '');
+  const cards = document.querySelectorAll('.tool-card');
+  cards.forEach(card => {
+    const name = card.querySelector('.card-name')?.textContent.toLowerCase() || '';
+    const desc = card.querySelector('.card-desc')?.textContent.toLowerCase() || '';
+    card.style.display = (name.includes(q) || desc.includes(q)) ? '' : 'none';
+  });
+});
+
+// ===== Scroll to Tools =====
+function scrollToTools() {
+  document.getElementById('toolsStart').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ===== Stagger fade-in on first load =====
+document.addEventListener('DOMContentLoaded', () => {
+  const firstBatch = document.querySelectorAll('.header, .search-wrap, .tabs-wrap, .banner-card, .stats-row');
+  firstBatch.forEach((el, i) => {
+    setTimeout(() => el.classList.add('visible'), i * 120);
+  });
+});
+</script>
+</body>
+</html>
